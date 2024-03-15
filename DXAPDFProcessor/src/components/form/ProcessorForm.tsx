@@ -85,16 +85,18 @@ export function ProcessorForm() {
           control={form.control}
           name="studyUUID"
           render={({ field }) => (
-            <FormItem className="col-span-1 h-[800px]">
-              <FormLabel>Please select study from the list</FormLabel>
-              <Popover >
+            <FormItem className="pt-16 space-y-2 col-span-1 h-[800px]">
+              <FormLabel className="text-xl">
+                Please select study from the list
+              </FormLabel>
+              <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-[100%]  h-[800px] ",
+                        "w-[100%]  h-[600px]",
                         !field.value && "text-muted-foreground"
                       )}
                     >
@@ -106,7 +108,12 @@ export function ProcessorForm() {
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent side="top" className="w-[400px] p-0">
+                <PopoverContent
+                  avoidCollisions={false}
+                  sideOffset={-400}
+                  side="bottom"
+                  className="w-[400px] p-0"
+                >
                   <Command>
                     <CommandInput
                       placeholder="Accession Number/ Patient ID"
@@ -146,13 +153,14 @@ export function ProcessorForm() {
           control={form.control}
           name="pdfPath"
           render={({ field }) => (
-            <FormItem className="col-span-1">
-              <FormLabel>Click here to upload</FormLabel>
+            <FormItem className="space-y-2 col-span-1 h-[800px] py-8">
+              <FormLabel className="text-xl">
+                Click Below to upload VFA PDF
+              </FormLabel>
               <FormControl>
                 <Input
-                  className="h-[800px]"
+                  className="w-full h-[600px] hover:text-accent-foreground hover:bg-accent"
                   type="file"
-                  placeholder="shadcn"
                   {...fileRef}
                 />
               </FormControl>
