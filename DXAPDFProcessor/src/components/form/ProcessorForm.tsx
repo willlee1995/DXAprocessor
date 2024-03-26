@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+
 const formSchema = z.object({
   studyUUID: z.string().min(1, {
     message: "This is a required field",
@@ -50,7 +51,19 @@ export function ProcessorForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Do something with the form values.
     // ✅ This will be type-safe and validated.
-    console.log(values);
+    console.log(values.pdfPath);
+    const file = values.pdfPath[0];
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onloadend = async () => {
+        const base64String = reader.result;
+
+        console.log(base64String); // Use the Base64 string as needed
+      };
+
+      reader.readAsDataURL(file);
+    }
   }
   const fileRef = form.register("pdfPath");
   const studies = [
