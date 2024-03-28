@@ -1,9 +1,5 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -15,7 +11,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,9 +22,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
-
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckIcon } from "@radix-ui/react-icons";
+import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 const formSchema = z.object({
   studyUUID: z.string().min(1, {
     message: "This is a required field",
@@ -46,7 +54,39 @@ export function ProcessorForm() {
       pdfPath: undefined,
     },
   });
-
+  const [studyDate, setStudyDate] = useState("");
+  useEffect(() => {
+    console.log(studyDate);
+  }, [studyDate]);
+  const { data: fetchedData } = useQuery({
+    queryKey: ["VettingFormById"],
+    queryFn: async () => {
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${btoa("admin:admin")}`,
+      };
+      const res = await fetch("http://localhost/tools/find", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          Level: "Study",
+          Query: {
+            PatientName: "*",
+            StudyDate: studyDate,
+          },
+          Expand: true,
+        }),
+      });
+      const json = await res.json();
+      if (json.errors) {
+        for (let error in json.errors) {
+          console.error(error);
+        }
+      }
+      return json;
+    },
+  });
+  console.log(fetchedData);
   // 2. Define a submit handler.
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Do something with the form values.
@@ -88,6 +128,15 @@ export function ProcessorForm() {
       label: "UH8870870 WB Whole Body HCH00005",
     },
   ];
+  const onValueChange = (value: string) => {
+    if (value) {
+      const startDate = dayjs()
+        .subtract(parseInt(value), "day")
+        .format("YYYYMMDD");
+      const endDate = dayjs().format("YYYYMMDD");
+      setStudyDate(`${startDate}-${endDate}`);
+    }
+  };
   return (
     <Form {...form}>
       <form
@@ -181,6 +230,19 @@ export function ProcessorForm() {
             </FormItem>
           )}
         />
+        <Separator className="col-span-2" />
+        <Select onValueChange={onValueChange} defaultValue="0">
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Study Time Filter Selection" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">Today</SelectItem>
+            <SelectItem value="7">Last Week</SelectItem>
+            <SelectItem value="14">Last Two Weeks</SelectItem>
+            <SelectItem value="60">Last Two Months</SelectItem>
+            <SelectItem value="*">Unlimited</SelectItem>
+          </SelectContent>
+        </Select>
         <Button type="submit" className="col-span-2">
           Attach PDF to selected study
         </Button>
