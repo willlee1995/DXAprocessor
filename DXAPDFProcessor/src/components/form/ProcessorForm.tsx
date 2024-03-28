@@ -147,7 +147,7 @@ export function ProcessorForm() {
           control={form.control}
           name="studyUUID"
           render={({ field }) => (
-            <FormItem className="pt-16 space-y-2 col-span-1 h-[800px]">
+            <FormItem className="pt-16 space-y-4 col-span-1 h-[700px] pb-8">
               <FormLabel className="text-xl">
                 Please select study from the list
               </FormLabel>
@@ -215,7 +215,7 @@ export function ProcessorForm() {
           control={form.control}
           name="pdfPath"
           render={({ field }) => (
-            <FormItem className="space-y-2 col-span-1 h-[800px] py-8">
+            <FormItem className="space-y-4 col-span-1 h-[700px] py-8">
               <FormLabel className="text-xl">
                 Click Below to upload VFA PDF
               </FormLabel>
@@ -231,20 +231,25 @@ export function ProcessorForm() {
           )}
         />
         <Separator className="col-span-2" />
-        <Select onValueChange={onValueChange} defaultValue="0">
-          <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder="Study Time Filter Selection" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">Today</SelectItem>
-            <SelectItem value="7">Last Week</SelectItem>
-            <SelectItem value="14">Last Two Weeks</SelectItem>
-            <SelectItem value="60">Last Two Months</SelectItem>
-            <SelectItem value="*">Unlimited</SelectItem>
-          </SelectContent>
-        </Select>
+        <FormItem className="">
+          <FormLabel className="text-left mx-0">
+            Select Study Time Filter if needed
+          </FormLabel>
+          <Select onValueChange={onValueChange} defaultValue="0">
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Study Time Filter Selection" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Today</SelectItem>
+              <SelectItem value="7">Last Week</SelectItem>
+              <SelectItem value="14">Last Two Weeks</SelectItem>
+              <SelectItem value="60">Last Two Months</SelectItem>
+              <SelectItem value="*">Unlimited</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormItem>
         <Button type="submit" className="col-span-2">
-          Attach PDF to selected study
+          Attach JPG to selected study
         </Button>
       </form>
     </Form>
