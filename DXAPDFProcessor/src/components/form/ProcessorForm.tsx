@@ -35,6 +35,16 @@ import { CheckIcon } from "@radix-ui/react-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { Separator } from "@/components/ui/separator";
+
 const formSchema = z.object({
   studyUUID: z.string().min(1, {
     message: "This is a required field",
@@ -52,19 +62,29 @@ export function ProcessorForm() {
       pdfPath: undefined,
     },
   });
+  const [studyDate, setStudyDate] = useState("");
+  useEffect(() => {
+    console.log(studyDate);
+  }, [studyDate]);
 
   // 2. Define a submit handler.
 
-  const [today, setToday] = useState("");
-  useEffect(() => {
-    setToday(dayjs(new Date(), "YYYY-MM-DD").format("YYYYMMDD"));
-  }, [today]);
+
+  const onValueChange = (value: string) => {
+    if (value) {
+      const startDate = dayjs()
+        .subtract(parseInt(value), "day")
+        .format("YYYYMMDD");
+      const endDate = dayjs().format("YYYYMMDD");
+      setStudyDate(`${startDate}-${endDate}`);
+    }
+  };
   const { data: fetchedData, isSuccess } = useQuery({
-    queryKey: ["DXACases", today],
-    queryFn: () => getDXACase(today),
+    queryKey: ["DXACases", studyDate],
+    queryFn: () => getDXACase(studyDate),
     retry: true,
     refetchOnMount: "always",
-    enabled: !!today,
+    enabled: !!studyDate,
   });
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -195,8 +215,8 @@ export function ProcessorForm() {
         <FormField
           control={form.control}
           name="pdfPath"
-          render={() => (
-            <FormItem className="space-y-2 col-span-1 h-[800px] py-8">
+          render={({ field }) => (
+            <FormItem className="space-y-4 col-span-1 h-[700px] py-8">
               <FormLabel className="text-xl">
                 Click Below to upload VFA JPG
               </FormLabel>
@@ -212,8 +232,26 @@ export function ProcessorForm() {
             </FormItem>
           )}
         />
+        <Separator className="col-span-2" />
+        <FormItem className="">
+          <FormLabel className="text-left mx-0">
+            Select Study Time Filter if needed
+          </FormLabel>
+          <Select onValueChange={onValueChange} defaultValue="0">
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Study Time Filter Selection" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Today</SelectItem>
+              <SelectItem value="7">Last Week</SelectItem>
+              <SelectItem value="14">Last Two Weeks</SelectItem>
+              <SelectItem value="60">Last Two Months</SelectItem>
+              <SelectItem value="*">Unlimited</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormItem>
         <Button type="submit" className="col-span-2">
-          Attach PDF to selected study
+          Attach JPG to selected study
         </Button>
       </form>
     </Form>

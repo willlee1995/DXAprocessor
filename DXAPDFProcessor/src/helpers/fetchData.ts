@@ -2,7 +2,7 @@
 //@ts-ignore
 
 const fetchData = async (API: string, query: any) => {
-  const encodedCredentials = btoa("lcw112:test");
+  const encodedCredentials = btoa("pacs:pacs");
   const headers = {
     "Content-Type": "application/json",
     Authorization: ` Basic ${encodedCredentials}`,
