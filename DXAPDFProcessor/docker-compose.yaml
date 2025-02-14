@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  app:
+    image: dxa_frontend:1.21
+    ports:
+      - "85:85"
+    restart: unless-stopped

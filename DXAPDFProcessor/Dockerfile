@@ -6,11 +6,21 @@ FROM node:lts AS development
 # Set working directory
 WORKDIR /app
 
-#
+# Install system dependencies required for canvas
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    pkg-config
+
+# Copy package files
 COPY package.json /app/package.json
 COPY package-lock.json /app/package-lock.json
 
-# Same as npm install
+# Install dependencies
 RUN yarn install
 
 COPY . /app
@@ -23,7 +33,6 @@ CMD [ "yarn", "start" ]
 FROM development AS build
 
 RUN yarn run build
-
 
 FROM development as dev-envs
 RUN <<EOF

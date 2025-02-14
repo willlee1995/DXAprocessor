@@ -1,0 +1,51 @@
+FROM oven/bun:1-slim AS builder
+WORKDIR /app
+
+# Install required dependencies for canvas
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python-is-python3 \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package files
+COPY package.json bun.lockb ./
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy the rest of the application including .env.production
+COPY . .
+
+# Ensure .env.production is used for the build
+RUN cp .env.production .env
+
+# Debug: Show directory structure
+RUN echo "Project structure:" && \
+    ls -la && \
+    echo "\nSource directory:" && \
+    ls -la src/
+
+# Build the app
+RUN bun run build
+
+# Production stage
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+
+# Remove default nginx static assets
+RUN rm -rf ./*
+
+# Copy built assets and nginx config
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 85
+
+CMD ["nginx", "-g", "daemon off;"]
