@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
-COPY package.json bun.lockb ./
+# Copy package files (npm lockfile; no bun.lockb in this repo)
+COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy the rest of the application including .env.production
 COPY . .

@@ -1,0 +1,32 @@
+---
+description: Air-gapped Docker release path for DXAprocessor (HKCH blueprint)
+alwaysApply: true
+---
+
+# Release Docker (air-gapped)
+
+- Merged PRs must carry exactly one label: `bump:major`, `bump:minor`, `bump:patch`, or `bump:none`.
+- GitHub Actions cuts **notes-only** SemVer tags via `.github/workflows/release-on-bump-label.yml`. It does **not** build or push Docker images.
+- **Cursor cloud agents** build the offline VM bundle and upload it to GitHub Releases — not Actions.
+
+## Publish (required after SemVer bump)
+
+From repository root, with Docker running, `gh` authenticated, and `DXAPDFProcessor/.env.production` present locally:
+
+```bash
+./scripts/docker/publish-prod-release.sh --build --semver --tag=vX.Y.Z
+```
+
+Use the real tag from the merge (e.g. `v0.0.1`). Do not substitute registry URLs or invent deploy hooks.
+
+## Forbidden
+
+- Deploying a SemVer release before `dxapdfprocessor-vm-bundle-X.Y.Z.zip` is attached
+- Treating Cloudflare, Vercel, Fly, or any public registry as the canonical release path
+- Including `dxapdfprocessor-buildkit-cache.tgz` inside the VM sneakernet zip (cache belongs on `docker-prod` only)
+
+## VM operator path
+
+Unzip bundle → `./deploy-staging.sh` (port 5085) → verify → `./deploy-promote.sh` (port 5086).
+
+See `VERSIONING.md` for ports, container names, and artifact names.

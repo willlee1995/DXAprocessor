@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DXA PDF Processor
+Comment=Open production instance on port 5086
+Exec=xdg-open http://127.0.0.1:5086
+Icon=applications-internet
+Terminal=false
+Categories=Network;
