@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DXA PDF Processor (Staging)
+Comment=Open staging instance on port 5085
+Exec=xdg-open http://127.0.0.1:5085
+Icon=applications-internet
+Terminal=false
+Categories=Network;

@@ -1,0 +1,157 @@
+name: Release on bump label
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    defaults:
+      run:
+        working-directory: DXAPDFProcessor
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve bump label
+        id: bump
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          LABELS=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/labels" --jq '[.[].name] | join("\n")')
+
+          MAJOR=false
+          MINOR=false
+          PATCH=false
+          NONE=false
+          while IFS= read -r label; do
+            case "$label" in
+              bump:major) MAJOR=true ;;
+              bump:minor) MINOR=true ;;
+              bump:patch) PATCH=true ;;
+              bump:none) NONE=true ;;
+            esac
+          done <<< "$LABELS"
+
+          COUNT=0
+          $MAJOR && COUNT=$((COUNT + 1))
+          $MINOR && COUNT=$((COUNT + 1))
+          $PATCH && COUNT=$((COUNT + 1))
+          $NONE && COUNT=$((COUNT + 1))
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::Exactly one bump:* label required (bump:major|minor|patch|none). Found: $(echo "$LABELS" | tr '\n' ' ')"
+            exit 1
+          fi
+
+          if $NONE; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Bump label bump:none — no SemVer release."
+            exit 0
+          fi
+
+          if $MAJOR; then KIND=major; fi
+          if $MINOR; then KIND=minor; fi
+          if $PATCH; then KIND=patch; fi
+          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        if: steps.bump.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Bump package version
+        if: steps.bump.outputs.skip != 'true'
+        id: version
+        run: |
+          set -euo pipefail
+          npm version "${{ steps.bump.outputs.kind }}" --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepend CHANGELOG entry
+        if: steps.bump.outputs.skip != 'true'
+        working-directory: .
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          ENTRY_FILE=$(mktemp)
+          {
+            echo "## v${VERSION}"
+            echo ""
+            if printf '%s' "$PR_BODY" | grep -q '^## Changelog'; then
+              printf '%s\n' "$PR_BODY" | sed -n '/^## Changelog/,$p' | tail -n +2 | sed '/^## /,$d'
+            else
+              echo "- ${PR_TITLE}"
+            fi
+            echo ""
+          } > "$ENTRY_FILE"
+
+          if [ -f CHANGELOG.md ]; then
+            { cat "$ENTRY_FILE"; echo; cat CHANGELOG.md; } > CHANGELOG.md.new
+          else
+            {
+              echo "# Changelog"
+              echo ""
+              cat "$ENTRY_FILE"
+            } > CHANGELOG.md.new
+          fi
+          mv CHANGELOG.md.new CHANGELOG.md
+          rm -f "$ENTRY_FILE"
+
+      - name: Commit release bump
+        if: steps.bump.outputs.skip != 'true'
+        working-directory: .
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add DXAPDFProcessor/package.json DXAPDFProcessor/package-lock.json CHANGELOG.md
+          git commit -m "chore(release): ${TAG}"
+          git push origin HEAD:main
+
+      - name: Create notes-only GitHub Release
+        if: steps.bump.outputs.skip != 'true'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          NOTES_FILE=$(mktemp)
+          {
+            echo "# ${TAG}"
+            echo ""
+            echo "Notes-only release. **Do not deploy** until \`dxapdfprocessor-vm-bundle-${VERSION}.zip\` is attached (Cursor cloud agent publish step)."
+            echo ""
+            if [ -f CHANGELOG.md ]; then
+              sed -n '/^## v'"${VERSION}"'$/,/^## v/p' CHANGELOG.md | sed '$d'
+            fi
+          } > "$NOTES_FILE"
+          gh release create "$TAG" --title "$TAG" --notes-file "$NOTES_FILE"
+          rm -f "$NOTES_FILE"
